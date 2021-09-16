@@ -1,15 +1,18 @@
-from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton
 from telegram.ext import ConversationHandler, CallbackContext
-from utils import sendMessage, sendMessageInline
+from utils import sendMessage, sendMessageInline, createCalendar, calendarInline
+from math import sin, cos, atan2, sqrt
 
 # states
 NAME, CITY, DISTANCE, LOCATION, DATE = range(100, 105)
 
+
 # start function
 def start(update: Update, context: CallbackContext) -> int:
     message = "Send me a command to start:\n\n/hi:\n/hello:"
-    update.message.reply_text(message, reply_markup=ReplyKeyboardRemove(),)
+    update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
+
 
 # end function
 def end(update: Update, context: CallbackContext) -> int:
@@ -22,7 +25,7 @@ def end(update: Update, context: CallbackContext) -> int:
 
 def hello(update: Update, context: CallbackContext) -> int:
     message_out = "Hi, I'm Lucy, your travel assistant, what's your name?"
-    sendMessage(update=update, context=context, message=message_out, keyboard=None)
+    sendMessage(update=update, context=context, message=message_out, keyboard=ReplyKeyboardRemove())
     return NAME
 
 
@@ -67,16 +70,89 @@ def selectCityInline(update: Update, context: CallbackContext) -> int:
     return DISTANCE
 
 
+def distance(update: Update, context: CallbackContext) -> int:
 
-def selectDistance(update: Update, context: CallbackContext) -> int:
+    text = update.message.text.lower()
+
+    if 'yes' in text.lower():
+        location_keyboard = KeyboardButton(text="Send my location \U0001F4CD",  request_location=True)
+        custom_keyboard = [[ location_keyboard ]]
+        markup = ReplyKeyboardMarkup(custom_keyboard) 
+        message_out = 'Please send me your location'
+        sendMessage(update=update, context=context, message=message_out, keyboard=markup)
+        return LOCATION
+
+    elif 'no' in text.lower():
+        message_out = 'Choose a tentative date'
+        sendMessage(update=update, context=context, message=message_out, keyboard=createCalendar())
+        return DATE
+
+    else:
+        message_out = ''
+        #sendMessage(update=update, context=context, message=message_out, keyboard=markup)
+        return DISTANCE
+
+
+def location(update: Update, context: CallbackContext) -> int:
+
+    if update.message.location:
+        lat = update.message.location.latitude
+        lon = update.message.location.longitude
+        print(lat, lon)
+
+        if context.user_data['city'] == 'New York' : 
+            lat_city = 40.7815955 
+            lon_city = -73.9830113
+
+        elif context.user_data['city'] == 'Tokio' : 
+            lat_city = 35.6684415
+            lon_city = 139.6007841
+
+        elif context.user_data['city'] == 'Istanbul' : 
+            lat_city = 41.0054958
+            lon_city = 28.8720963
+
+        dist_lon = lon_city - lon
+        dist_lat = lat_city - lat
+
+        a = sin(dist_lat / 2)**2 + cos(lat) * cos(lat_city) * sin(dist_lon / 2)**2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        distance = int(6373.0 * c)
+
+        message_out = f'You are located *{distance}km* away'
+        sendMessage(update=update, context=context, message=message_out, keyboard=ReplyKeyboardRemove())
+
+        message_out = 'Choose a tentative date'
+        sendMessage(update=update, context=context, message=message_out, keyboard=createCalendar())
+        return DATE
+
+    else:
+        location_keyboard = KeyboardButton(text="Send my location \U0001F4CD",  request_location=True)
+        custom_keyboard = [[ location_keyboard ]]
+        markup = ReplyKeyboardMarkup(custom_keyboard) 
+        message_out = 'Please send me your location.'
+        sendMessage(update=update, context=context, message=message_out, keyboard=markup)
+        return LOCATION
+
+
+def date(update, context) -> int:
+
+    bot = context.bot
+    _, date = calendarInline(bot, update)
     
-    message_out = 'Hello, please select the city you want to visit.'
-    menu = [
-        [ InlineKeyboardButton("\U0001F5FD  New York", callback_data="New York")],
-        [ InlineKeyboardButton("\U000026E9  Tokio", callback_data="Tokio")],
-        [ InlineKeyboardButton("\U0001F54C  Istanbul", callback_data="Istanbul")],
-    ]
-    markup = InlineKeyboardMarkup(menu)
+    message_out = "Travel date: " + (date.strftime("%d/%m/%Y"))
 
-    sendMessage(update=update, context=context, message=message_out, keyboard=markup)
-    return 2
+    sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
+
+    name = context.user_data['name']
+    message_out = f"{name}, the tour could cost $ 5200"
+    sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
+
+    message_out = "Thanks, an advisor will contact you"
+    sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
+
+    message_out = "Have a nice day!!"
+    sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
+
+    return ConversationHandler.END

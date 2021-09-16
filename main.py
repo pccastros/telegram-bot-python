@@ -34,7 +34,10 @@ def main() -> None:
             CITY: [ 
                 MessageHandler(Filters.chat_type.private, selectCity),
                 CallbackQueryHandler(selectCityInline)
-            ]
+            ],
+            DISTANCE: [ MessageHandler(Filters.chat_type.private, distance)],
+            LOCATION: [ MessageHandler(Filters.chat_type.private, location)],
+            DATE: [CallbackQueryHandler(date)]
         },
         fallbacks=[
             CommandHandler('exit', end),
