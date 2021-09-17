@@ -9,7 +9,7 @@ NAME, CITY, DISTANCE, LOCATION, DATE = range(100, 105)
 
 # start function
 def start(update: Update, context: CallbackContext) -> int:
-    message = "Send me a command to start:\n\n/hi:\n/hello:"
+    message = "Send me a command to start:\n\n/hello - Start conversation"
     update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
@@ -18,7 +18,7 @@ def start(update: Update, context: CallbackContext) -> int:
 def end(update: Update, context: CallbackContext) -> int:
     message = 'Time Out!'
     update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
-    message = "Send me a command to start:\n\n/hi:\n/hello:"
+    message = "Send me a command to start:\n\n/hello - Start conversation"
     update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
@@ -88,8 +88,11 @@ def distance(update: Update, context: CallbackContext) -> int:
         return DATE
 
     else:
-        message_out = ''
-        #sendMessage(update=update, context=context, message=message_out, keyboard=markup)
+        city = context.user_data['city']
+        message_out = f'Would you like to know how far {city} is from you?'
+        reply_keyboard = [['\U00002705  Yes', '\U0000274C  No']]
+        markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True, resize_keyboard=False)
+        sendMessageInline(update=update, context=context, message=message_out, keyboard=markup)
         return DISTANCE
 
 
@@ -112,6 +115,7 @@ def location(update: Update, context: CallbackContext) -> int:
             lat_city = 41.0054958
             lon_city = 28.8720963
 
+        # calcule distance between coords
         dist_lon = lon_city - lon
         dist_lat = lat_city - lat
 
@@ -149,7 +153,7 @@ def date(update, context) -> int:
     message_out = f"{name}, the tour could cost $ 5200"
     sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
 
-    message_out = "Thanks, an advisor will contact you"
+    message_out = "Thanks, an advisor will contact you. Send /hello to start a new conversation."
     sendMessageInline(update=update, context=context, message=message_out, keyboard=None)
 
     message_out = "Have a nice day!!"
